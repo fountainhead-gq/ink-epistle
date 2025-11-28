@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, RefreshCw, ArrowRight, Sparkles, History, List } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, ArrowRight, Sparkles, History } from 'lucide-react';
 import { generateQuiz } from '../services/geminiService';
 import { QuizQuestion, User, QuizResult } from '../types';
 import { dataService } from '../services/dataService';
@@ -287,15 +287,15 @@ const PracticeStudio: React.FC = () => {
                 className={btnClass}
                 disabled={showResult}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center">
                   <span>{option}</span>
                   {showResult && 
                     ((Array.isArray(currentQuestion.correctAnswer) ? currentQuestion.correctAnswer.includes(option) : currentQuestion.correctAnswer === option)) && 
-                    <CheckCircle size={20} className="text-green-600" />
+                    <CheckCircle size={20} className="text-green-600 absolute right-4" />
                   }
                   {showResult && isSelected && 
                     !((Array.isArray(currentQuestion.correctAnswer) ? currentQuestion.correctAnswer.includes(option) : currentQuestion.correctAnswer === option)) && 
-                    <XCircle size={20} className="text-red-600" />
+                    <XCircle size={20} className="text-red-600 absolute right-4" />
                   }
                 </div>
               </button>

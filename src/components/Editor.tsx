@@ -63,8 +63,6 @@ const Editor: React.FC<EditorProps> = ({ initialContent, user, onNavigate }) => 
     if (user) {
         dataService.saveCurrentDraft(user.id, content);
     }
-    // Note: We don't automatically clear AI cache on every keystroke to prevent annoyance,
-    // but users should know analysis might be stale.
   }, [content, user]);
 
   const showToast = (msg: string) => {
@@ -215,7 +213,7 @@ const Editor: React.FC<EditorProps> = ({ initialContent, user, onNavigate }) => 
              if (onNavigate) onNavigate(ViewState.COMMUNITY);
           }, 1500);
       } else {
-          alert("发布失败，请稍后重试。");
+          showToast("发布失败，请稍后重试。");
       }
   };
 

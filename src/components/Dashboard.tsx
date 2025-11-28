@@ -2,10 +2,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { User, UserActivity } from '../types';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, Cell
 } from 'recharts';
-import { Trophy, Flame, Book, PenTool, Ticket, Download, Upload } from 'lucide-react';
+import { Trophy, Flame, Book, PenTool, Download, Upload } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface DashboardProps {
@@ -19,8 +19,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     words: 0,
     days: 0
   });
-  const [referralCode, setReferralCode] = useState('');
-  const [inputCode, setInputCode] = useState('');
+  // const [referralCode, setReferralCode] = useState('');
+  // const [inputCode, setInputCode] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,20 +33,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         const stats = await dataService.getUserStats(user.id);
         setTotalStats(stats);
 
-        // Fetch Referral
-        const code = await dataService.getReferralCode(user.id);
-        setReferralCode(code);
+        // Fetch Referral - Hidden for now
+        // const code = await dataService.getReferralCode(user.id);
+        // setReferralCode(code);
     };
 
     fetchData();
   }, [user.id]);
 
+  /* 
   const handleRedeem = async () => {
      if (!inputCode) return;
      const res = await dataService.redeemReferral(user.id, inputCode);
      alert(res.message);
      setInputCode('');
   };
+  */
   
   const handleBackup = async () => {
     try {
@@ -206,7 +208,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                       contentStyle={{ backgroundColor: '#fff', border: '1px solid #e7e5e4', fontFamily: 'serif', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
                     />
                     <Bar dataKey="minutes" radius={[4, 4, 0, 0]}>
-                      {activityHistory.map((entry, index) => (
+                      {activityHistory.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={index === activityHistory.length - 1 ? '#1c1917' : '#d6d3d1'} />
                       ))}
                     </Bar>

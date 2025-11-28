@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ViewState, User } from '../types';
-import { BookOpen, PenTool, Layout, Activity, Feather, MessageSquare, Map, LogOut, Clock, Scroll, Sparkles, GraduationCap, Crown, Users, X, Stamp, Flower } from 'lucide-react';
+import { BookOpen, PenTool, Layout, Activity, Feather, MessageSquare, Map, LogOut, Clock, Scroll, Sparkles, GraduationCap, Crown, Users, X, Stamp, Flower, LucideIcon } from 'lucide-react';
 import { useUpgradeModal } from './UpgradeContext';
 
 interface NavProps {
@@ -14,10 +14,17 @@ interface NavProps {
   onClose: () => void;
 }
 
+interface NavItem {
+  id?: ViewState;
+  label?: string;
+  icon?: LucideIcon;
+  type?: 'divider';
+}
+
 const Nav: React.FC<NavProps> = ({ currentView, setView, user, onLogout, todayMinutes, isOpen, onClose }) => {
   const { triggerUpgrade } = useUpgradeModal();
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { id: ViewState.DASHBOARD, label: '书斋概览', icon: Activity },
     { id: ViewState.AI_TUTOR, label: '文言导师', icon: GraduationCap },
     { id: ViewState.TEMPLATES, label: '尺牍模版', icon: Layout },
@@ -72,14 +79,14 @@ const Nav: React.FC<NavProps> = ({ currentView, setView, user, onLogout, todayMi
               return <div key={`divider-${index}`} className="h-px bg-stone-800 my-4 mx-2" />;
             }
             
-            // @ts-ignore - we checked type above
+            if (!item.id || !item.icon) return null;
+
             const Icon = item.icon;
             const isActive = currentView === item.id;
             return (
               <button
                 key={item.id}
-                // @ts-ignore
-                onClick={() => handleNavClick(item.id)}
+                onClick={() => item.id && handleNavClick(item.id)}
                 className={`w-full flex items-center space-x-4 px-4 py-3 rounded-lg transition-all duration-300 font-serif tracking-wide text-left
                   ${isActive 
                     ? 'bg-stone-800 text-white border-l-4 border-red-800 shadow-md' 
@@ -87,7 +94,6 @@ const Nav: React.FC<NavProps> = ({ currentView, setView, user, onLogout, todayMi
                   }`}
               >
                 <Icon size={18} strokeWidth={1.5} />
-                {/* @ts-ignore */}
                 <span>{item.label}</span>
               </button>
             );

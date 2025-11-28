@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Seal } from '../types';
 import { dataService } from '../services/dataService';
-import { Save, Trash2, RefreshCw, PenTool, Type, Box, Circle, Square } from 'lucide-react';
+import { Save, Trash2, PenTool, Box, Circle, Square } from 'lucide-react';
 
 interface SealStudioProps {
   user: User;

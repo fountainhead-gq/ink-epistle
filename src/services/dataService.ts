@@ -198,7 +198,7 @@ class DataService {
     return `INK-${userId.substring(0, 4).toUpperCase()}-2024`;
   }
 
-  async redeemReferral(userId: string, code: string): Promise<{ success: boolean, message: string }> {
+  async redeemReferral(_userId: string, _code: string): Promise<{ success: boolean, message: string }> {
     return { success: true, message: "兑换成功！会员权益已延长。" };
   }
 

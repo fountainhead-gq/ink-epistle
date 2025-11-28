@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Lock, Book, PenTool, ChevronRight, Loader2, Save } from 'lucide-react';
+import { CheckCircle, Lock, Book, PenTool, ChevronRight, Loader2 } from 'lucide-react';
 import { evaluateExercise } from '../services/geminiService';
 import { User } from '../types';
 import { dataService } from '../services/dataService';

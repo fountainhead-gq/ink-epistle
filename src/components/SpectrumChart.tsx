@@ -70,7 +70,7 @@ AI评语：${data.summary}`;
               stroke="#9f1239"
               strokeWidth={2}
               fill="#9f1239"
-              fillOpacity={0.6}
+              fillOpacity={0.9}
             />
             <Tooltip 
                contentStyle={{backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e7e5e4', fontFamily: 'serif'}}

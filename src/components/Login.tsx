@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User } from '../types';
 import { Feather, Loader2, Cloud, HardDrive, AlertCircle } from 'lucide-react';
@@ -72,7 +71,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     } catch (e: any) {
       console.error("Auth failed", e);
-      setErrorMsg(e.message || "登录失败");
+      let message = e.message || "登录失败";
+      
+      // Supabase Error Translation
+      if (message.includes("User already registered") || message.includes("user_already_exists")) {
+        message = "该邮箱已注册，请直接登录";
+      } else if (message.includes("Invalid login credentials") || message.includes("invalid_grant")) {
+        message = "账号或密码错误";
+      } else if (message.includes("Password should be at least")) {
+        message = "密码长度需至少 6 位";
+      } else if (message.includes("Database error")) {
+        message = "服务器繁忙，请稍后再试";
+      } else if (message.includes("Rate limit exceeded")) {
+        message = "请求过于频繁，请稍后再试";
+      }
+
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }

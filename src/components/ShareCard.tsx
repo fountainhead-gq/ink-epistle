@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import { X, Download, Loader2, Palette } from 'lucide-react';
+import { X, Download, Loader2 } from 'lucide-react';
 import { User, Seal } from '../types';
 import { dataService } from '../services/dataService';
 

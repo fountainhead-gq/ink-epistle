@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Check, Crown, Zap, Sparkles, Key } from 'lucide-react';
+import { X,  Crown, Zap, Sparkles, Key } from 'lucide-react';
 import { User } from '../types';
 import { dataService } from '../services/dataService';
 

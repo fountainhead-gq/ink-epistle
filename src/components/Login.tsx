@@ -1,14 +1,17 @@
+
 import React, { useState } from 'react';
 import { User } from '../types';
-import { Feather, Loader2, Cloud, HardDrive, AlertCircle } from 'lucide-react';
+import { Feather, Loader2, Cloud, HardDrive, AlertCircle, ArrowLeft, KeyRound, Mail } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface LoginProps {
   onLogin: (user: User) => void;
 }
 
+type AuthMode = 'login' | 'register' | 'forgot_password';
+
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [isLoginMode, setIsLoginMode] = useState(true); // Login vs Register toggle
+  const [authMode, setAuthMode] = useState<AuthMode>('login'); 
   
   // Local Fields
   const [name, setName] = useState('');
@@ -20,20 +23,33 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const handleAuth = async () => {
     setErrorMsg('');
+    setSuccessMsg('');
     setIsLoading(true);
 
     try {
+      // 1. Forgot Password Flow
+      if (authMode === 'forgot_password') {
+          if (!email) throw new Error("请输入注册邮箱");
+          await dataService.resetPassword(email);
+          setSuccessMsg("重置邮件已发送，请查收邮箱");
+          setIsLoading(false);
+          return;
+      }
+
+      // 2. Login/Register Flow
       let user: User | null = null;
+      let requireConfirmation = false;
 
       if (dataService.isCloudMode) {
         if (!email || !password) {
           throw new Error("请输入邮箱和密码");
         }
         
-        if (isLoginMode) {
+        if (authMode === 'login') {
            user = await dataService.login(email, password);
         } else {
            if (!name) throw new Error("注册需填写昵称");
@@ -42,13 +58,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
              styleName: styleName || '新晋学士',
              avatarColor: ['bg-amber-700', 'bg-rose-700', 'bg-emerald-700', 'bg-indigo-700', 'bg-stone-700'][Math.floor(Math.random() * 5)]
            };
-           user = await dataService.register(email, password, extra);
+           const res = await dataService.register(email, password, extra);
+           user = res.user;
+           requireConfirmation = res.requireConfirmation;
         }
       } else {
         // Local Mode
         if (!name.trim()) throw new Error("请输入尊姓大名");
         
-        // Mock Register/Login as same action
         const newUser: User = {
           id: name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000),
           name: name,
@@ -57,14 +74,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           joinedDate: new Date().toISOString()
         };
         
-        // In local mode, register behaves like login/create
-        user = await dataService.register(name, undefined, newUser);
+        const res = await dataService.register(name, undefined, newUser);
+        user = res.user;
       }
 
-      if (user) {
+      if (user && !requireConfirmation) {
         // Init activity
         await dataService.updateActivity(user.id, { loginCount: 1 });
         onLogin(user);
+      } else if (requireConfirmation) {
+        setSuccessMsg("注册成功！请前往邮箱查收确认邮件以激活账号。");
+        setAuthMode('login'); // Switch back to login for when they return
       } else {
         throw new Error("认证失败，请检查凭证");
       }
@@ -84,12 +104,33 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         message = "服务器繁忙，请稍后再试";
       } else if (message.includes("Rate limit exceeded")) {
         message = "请求过于频繁，请稍后再试";
+      } else if (message.includes("Email not found")) {
+        message = "该邮箱未注册";
       }
 
       setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+      setErrorMsg('');
+      setSuccessMsg('');
+      if (authMode === 'login') setAuthMode('register');
+      else setAuthMode('login');
+  };
+
+  const goToForgot = () => {
+      setErrorMsg('');
+      setSuccessMsg('');
+      setAuthMode('forgot_password');
+  };
+
+  const backToLogin = () => {
+      setErrorMsg('');
+      setSuccessMsg('');
+      setAuthMode('login');
   };
 
   return (
@@ -101,7 +142,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-stone-900 rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-lg">
-            <Feather size={32} />
+            {authMode === 'forgot_password' ? <KeyRound size={32} /> : <Feather size={32} />}
           </div>
           <h1 className="text-4xl font-calligraphy text-stone-900 mb-2">文言尺牍</h1>
           <p className="text-stone-500 font-serif tracking-widest uppercase text-xs">Ink & Epistle</p>
@@ -118,23 +159,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                <AlertCircle size={16} /> {errorMsg}
             </div>
           )}
+          
+          {successMsg && (
+            <div className="bg-green-50 text-green-700 p-3 rounded text-sm flex items-center gap-2">
+               <Mail size={16} /> {successMsg}
+            </div>
+          )}
 
-          {dataService.isCloudMode ? (
-            <>
-               {!isLoginMode && (
-                 <div>
-                   <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>
-                   <input 
-                     type="text" 
-                     value={name}
-                     onChange={(e) => setName(e.target.value)}
-                     className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
-                     placeholder="昵称"
-                   />
-                 </div>
-               )}
-               <div>
-                  <label className="block text-sm font-serif font-bold text-stone-700 mb-2">电子邮箱</label>
+          {authMode === 'forgot_password' ? (
+             <>
+                <div>
+                  <label className="block text-sm font-serif font-bold text-stone-700 mb-2">注册邮箱</label>
                   <input 
                     type="email" 
                     value={email}
@@ -142,65 +177,115 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
                     placeholder="name@example.com"
                   />
-               </div>
-               <div>
-                  <label className="block text-sm font-serif font-bold text-stone-700 mb-2">密码</label>
-                  <input 
-                    type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
-                    placeholder="••••••••"
-                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                  />
-               </div>
-            </>
+                  <p className="text-xs text-stone-400 mt-2">我们将发送重置链接到您的邮箱。</p>
+                </div>
+                <button 
+                    onClick={handleAuth}
+                    disabled={isLoading}
+                    className="w-full py-4 bg-stone-900 text-stone-50 rounded-lg hover:bg-stone-800 transition-colors font-serif text-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    {isLoading ? <Loader2 className="animate-spin" /> : '发送重置链接'}
+                </button>
+                <button 
+                    onClick={backToLogin}
+                    className="w-full text-center text-stone-500 text-sm hover:text-stone-800 flex items-center justify-center gap-1"
+                >
+                    <ArrowLeft size={14} /> 返回登录
+                </button>
+             </>
           ) : (
             <>
-              <div>
-                <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif text-lg placeholder-stone-400"
-                  placeholder="请输入您的名字"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                />
-              </div>
+              {dataService.isCloudMode ? (
+                <>
+                   {authMode === 'register' && (
+                     <div>
+                       <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>
+                       <input 
+                         type="text" 
+                         value={name}
+                         onChange={(e) => setName(e.target.value)}
+                         className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                         placeholder="昵称"
+                       />
+                     </div>
+                   )}
+                   <div>
+                      <label className="block text-sm font-serif font-bold text-stone-700 mb-2">电子邮箱</label>
+                      <input 
+                        type="email" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                        placeholder="name@example.com"
+                      />
+                   </div>
+                   <div>
+                      <div className="flex justify-between items-center mb-2">
+                          <label className="block text-sm font-serif font-bold text-stone-700">密码</label>
+                          {authMode === 'login' && (
+                              <button onClick={goToForgot} className="text-xs text-stone-400 hover:text-stone-600 hover:underline">
+                                  忘记密码？
+                              </button>
+                          )}
+                      </div>
+                      <input 
+                        type="password" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                        placeholder="••••••••"
+                        onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                      />
+                   </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>
+                    <input 
+                      type="text" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif text-lg placeholder-stone-400"
+                      placeholder="请输入您的名字"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-serif font-bold text-stone-700 mb-2">雅号（选填）</label>
-                <input 
-                  type="text" 
-                  value={styleName}
-                  onChange={(e) => setStyleName(e.target.value)}
-                  className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif text-lg placeholder-stone-400"
-                  placeholder="如：东坡居士"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-serif font-bold text-stone-700 mb-2">雅号（选填）</label>
+                    <input 
+                      type="text" 
+                      value={styleName}
+                      onChange={(e) => setStyleName(e.target.value)}
+                      className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif text-lg placeholder-stone-400"
+                      placeholder="如：东坡居士"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                    />
+                  </div>
+                </>
+              )}
+
+              <button 
+                onClick={handleAuth}
+                disabled={isLoading}
+                className="w-full py-4 bg-stone-900 text-stone-50 rounded-lg hover:bg-stone-800 transition-colors font-serif text-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? <Loader2 className="animate-spin" /> : (authMode === 'login' ? '进入书斋' : '注册并进入')}
+              </button>
+              
+              {dataService.isCloudMode && (
+                 <p className="text-center text-sm font-serif">
+                   {authMode === 'login' ? '还没有账号？' : '已有账号？'}
+                   <button 
+                     onClick={toggleMode}
+                     className="ml-2 underline text-stone-800 font-bold hover:text-stone-600"
+                   >
+                     {authMode === 'login' ? '立即注册' : '直接登录'}
+                   </button>
+                 </p>
+              )}
             </>
-          )}
-
-          <button 
-            onClick={handleAuth}
-            disabled={isLoading}
-            className="w-full py-4 bg-stone-900 text-stone-50 rounded-lg hover:bg-stone-800 transition-colors font-serif text-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isLoading ? <Loader2 className="animate-spin" /> : (isLoginMode ? '进入书斋' : '注册并进入')}
-          </button>
-          
-          {dataService.isCloudMode && (
-             <p className="text-center text-sm font-serif">
-               {isLoginMode ? '还没有账号？' : '已有账号？'}
-               <button 
-                 onClick={() => setIsLoginMode(!isLoginMode)}
-                 className="ml-2 underline text-stone-800 font-bold hover:text-stone-600"
-               >
-                 {isLoginMode ? '立即注册' : '直接登录'}
-               </button>
-             </p>
           )}
 
           <p className="text-center text-xs text-stone-400 font-serif mt-4">

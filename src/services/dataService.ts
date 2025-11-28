@@ -51,11 +51,24 @@ class DataService {
     }
   }
 
-  async register(email: string, password: string | undefined, extra: any): Promise<User | null> {
+  async register(email: string, password: string | undefined, extra: any): Promise<{user: User | null, requireConfirmation: boolean}> {
     if (this.isCloudMode && supabase && password) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: {
+                // If you want to store metadata in auth.users too, or use it for triggers
+                data: {
+                    display_name: extra.name,
+                    avatar_color: extra.avatarColor
+                }
+            }
+        });
         if (error) throw error;
         
+        // If data.user exists but data.session is null, email confirmation is required
+        const requireConfirmation = !!(data.user && !data.session);
+
         if (data.user) {
             // Create Profile
             const newProfile = {
@@ -66,8 +79,15 @@ class DataService {
                 avatar_color: extra.avatarColor,
                 is_pro: false
             };
+            
+            // Note: If email confirmation is strictly enforced by RLS, this insert might fail 
+            // until the user confirms. However, usually 'authenticated' role or a trigger handles this.
+            // We attempt it here.
             const { error: profileError } = await supabase.from('profiles').insert(newProfile);
-            if (profileError) throw profileError;
+            
+            // If insertion fails due to RLS (unconfirmed), we ignore it here, 
+            // as the user needs to confirm email first anyway.
+            if (profileError && !requireConfirmation) throw profileError;
 
             const user = {
                 id: newProfile.id,
@@ -77,14 +97,30 @@ class DataService {
                 joinedDate: new Date().toISOString(),
                 isPro: false
             };
-            localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(user));
-            return user;
+            
+            // Only auto-login (store in LS) if no confirmation is required
+            if (!requireConfirmation) {
+                localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(user));
+            }
+            
+            return { user, requireConfirmation };
         }
-        return null;
+        return { user: null, requireConfirmation: false };
     } else {
         localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(extra));
-        return extra;
+        return { user: extra, requireConfirmation: false };
     }
+  }
+
+  async resetPassword(email: string): Promise<void> {
+      if (this.isCloudMode && supabase) {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+              redirectTo: window.location.origin, // Redirect back to app to set new password
+          });
+          if (error) throw error;
+      } else {
+          throw new Error("本地模式不支持重置密码");
+      }
   }
 
   async logout(): Promise<void> {

@@ -1,0 +1,201 @@
+
+import React, { useState } from 'react';
+import { User } from '../types';
+import { Feather, Loader2, Cloud, HardDrive, AlertCircle } from 'lucide-react';
+import { dataService } from '../services/dataService';
+
+interface LoginProps {
+  onLogin: (user: User) => void;
+}
+
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const [isLoginMode, setIsLoginMode] = useState(true); // Login vs Register toggle
+  
+  // Local Fields
+  const [name, setName] = useState('');
+  const [styleName, setStyleName] = useState('');
+  
+  // Cloud Fields
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleAuth = async () => {
+    setErrorMsg('');
+    setIsLoading(true);
+
+    try {
+      let user: User | null = null;
+
+      if (dataService.isCloudMode) {
+        if (!email || !password) {
+          throw new Error("请输入邮箱和密码");
+        }
+        
+        if (isLoginMode) {
+           user = await dataService.login(email, password);
+        } else {
+           if (!name) throw new Error("注册需填写昵称");
+           const extra = {
+             name: name,
+             styleName: styleName || '新晋学士',
+             avatarColor: ['bg-amber-700', 'bg-rose-700', 'bg-emerald-700', 'bg-indigo-700', 'bg-stone-700'][Math.floor(Math.random() * 5)]
+           };
+           user = await dataService.register(email, password, extra);
+        }
+      } else {
+        // Local Mode
+        if (!name.trim()) throw new Error("请输入尊姓大名");
+        
+        // Mock Register/Login as same action
+        const newUser: User = {
+          id: name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000),
+          name: name,
+          styleName: styleName || '白衣秀士',
+          avatarColor: ['bg-amber-700', 'bg-rose-700', 'bg-emerald-700', 'bg-indigo-700', 'bg-stone-700'][Math.floor(Math.random() * 5)],
+          joinedDate: new Date().toISOString()
+        };
+        
+        // In local mode, register behaves like login/create
+        user = await dataService.register(name, undefined, newUser);
+      }
+
+      if (user) {
+        // Init activity
+        await dataService.updateActivity(user.id, { loginCount: 1 });
+        onLogin(user);
+      } else {
+        throw new Error("认证失败，请检查凭证");
+      }
+
+    } catch (e: any) {
+      console.error("Auth failed", e);
+      setErrorMsg(e.message || "登录失败");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f5f5f4] flex items-center justify-center p-4" style={{backgroundImage: 'radial-gradient(#d6d3d1 1px, transparent 1px)', backgroundSize: '30px 30px'}}>
+      <div className="bg-white p-10 rounded-xl shadow-xl max-w-md w-full border border-stone-200 relative overflow-hidden animate-fade-in">
+        <div className="absolute -right-10 -bottom-10 opacity-[0.03] pointer-events-none select-none">
+           <span className="text-[12rem] font-calligraphy">墨</span>
+        </div>
+
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-stone-900 rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-lg">
+            <Feather size={32} />
+          </div>
+          <h1 className="text-4xl font-calligraphy text-stone-900 mb-2">文言尺牍</h1>
+          <p className="text-stone-500 font-serif tracking-widest uppercase text-xs">Ink & Epistle</p>
+          
+          <div className="mt-4 inline-flex items-center gap-1 px-3 py-1 bg-stone-100 rounded-full text-xs font-bold text-stone-500">
+             {dataService.isCloudMode ? <Cloud size={12} /> : <HardDrive size={12} />}
+             {dataService.isCloudMode ? '云端同步模式' : '本地单机模式'}
+          </div>
+        </div>
+
+        <div className="space-y-6 relative z-10">
+          {errorMsg && (
+            <div className="bg-red-50 text-red-700 p-3 rounded text-sm flex items-center gap-2">
+               <AlertCircle size={16} /> {errorMsg}
+            </div>
+          )}
+
+          {dataService.isCloudMode ? (
+            <>
+               {!isLoginMode && (
+                 <div>
+                   <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>
+                   <input 
+                     type="text" 
+                     value={name}
+                     onChange={(e) => setName(e.target.value)}
+                     className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                     placeholder="昵称"
+                   />
+                 </div>
+               )}
+               <div>
+                  <label className="block text-sm font-serif font-bold text-stone-700 mb-2">电子邮箱</label>
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                    placeholder="name@example.com"
+                  />
+               </div>
+               <div>
+                  <label className="block text-sm font-serif font-bold text-stone-700 mb-2">密码</label>
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                    placeholder="••••••••"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                  />
+               </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>
+                <input 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif text-lg placeholder-stone-400"
+                  placeholder="请输入您的名字"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-serif font-bold text-stone-700 mb-2">雅号（选填）</label>
+                <input 
+                  type="text" 
+                  value={styleName}
+                  onChange={(e) => setStyleName(e.target.value)}
+                  className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif text-lg placeholder-stone-400"
+                  placeholder="如：东坡居士"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                />
+              </div>
+            </>
+          )}
+
+          <button 
+            onClick={handleAuth}
+            disabled={isLoading}
+            className="w-full py-4 bg-stone-900 text-stone-50 rounded-lg hover:bg-stone-800 transition-colors font-serif text-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isLoading ? <Loader2 className="animate-spin" /> : (isLoginMode ? '进入书斋' : '注册并进入')}
+          </button>
+          
+          {dataService.isCloudMode && (
+             <p className="text-center text-sm font-serif">
+               {isLoginMode ? '还没有账号？' : '已有账号？'}
+               <button 
+                 onClick={() => setIsLoginMode(!isLoginMode)}
+                 className="ml-2 underline text-stone-800 font-bold hover:text-stone-600"
+               >
+                 {isLoginMode ? '立即注册' : '直接登录'}
+               </button>
+             </p>
+          )}
+
+          <p className="text-center text-xs text-stone-400 font-serif mt-4">
+            习文练字，修身养性
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

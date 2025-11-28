@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>文言尺牍 | Ink & Epistle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;700&family=Ma+Shan+Zheng&family=Long+Cang&family=Zhi+Mang+Xing&family=ZCOOL+XiaoWei&family=Liu+Jian+Mao+Cao&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              serif: ['"Noto Serif SC"', 'SimSun', 'STSong', 'serif'],
+              calligraphy: ['"Ma Shan Zheng"', 'STKaiti', 'KaiTi', 'cursive'],
+              'long-cang': ['"Long Cang"', 'cursive'],
+              'zhi-mang': ['"Zhi Mang Xing"', 'cursive'],
+              'xiaowei': ['"ZCOOL XiaoWei"', 'serif'],
+              'maocao': ['"Liu Jian Mao Cao"', 'cursive'],
+            },
+            colors: {
+              ink: {
+                50: '#f5f5f4', // stone-100
+                100: '#e7e5e4', // stone-200
+                800: '#292524', // stone-800
+                900: '#1c1917', // stone-900
+              },
+              accent: {
+                red: '#9f1239', // rose-800 (Seal color)
+                green: '#3f6212', // lime-800 (Bamboo)
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #f5f5f4;
+        color: #1c1917;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #d6d3d1;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a29e;
+      }
+      /* Ruby text styling */
+      ruby {
+        ruby-position: over;
+      }
+      rt {
+        font-size: 0.5em;
+        color: #78716c; /* stone-500 */
+        font-family: sans-serif;
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "@google/generative-ai": "https://aistudiocdn.com/@google/generative-ai@^0.24.1",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <!-- SVG Filters for Seal Effects -->
+    <svg style="display: none;">
+      <defs>
+        <filter id="seal-roughness">
+          <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+        </filter>
+        <filter id="seal-erosion">
+           <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" result="noise" />
+           <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -9" in="noise" result="coloredNoise" />
+           <feComposite operator="in" in="coloredNoise" in2="SourceGraphic" result="composite" />
+        </filter>
+      </defs>
+    </svg>
+    <!-- Vite Entry Point -->
+    <script type="module" src="/src/index.tsx"></script>
+</body>
+</html>

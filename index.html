@@ -1,10 +1,26 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>文言尺牍 | Ink & Epistle</title>
+    <title>文言尺牍 | Ink & Epistle - 沉浸式古文写作助手</title>
+    <meta name="description" content="以古文之雅，练当代之表达。文言尺牍是一个集AI辅助写作、古文模版库、名篇赏析与沉浸式角色扮演于一体的古文学习与创作平台。" />
+    <meta name="keywords" content="文言文, 古文写作, 书信, 尺牍, AI写作, 苏轼, 国学, 传统文化" />
+    
+    <!-- Open Graph / Facebook / WeChat -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ink-epistle.vercel.app/" />
+    <meta property="og:title" content="文言尺牍 | Ink & Epistle" />
+    <meta property="og:description" content="以古文之雅，练当代之表达。AI 赋能的沉浸式古文书信创作平台。" />
+    <meta property="og:image" content="https://ink-epistle.vercel.app/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://ink-epistle.vercel.app/" />
+    <meta property="twitter:title" content="文言尺牍 | Ink & Epistle" />
+    <meta property="twitter:description" content="以古文之雅，练当代之表达。AI 赋能的沉浸式古文书信创作平台。" />
+    <meta property="twitter:image" content="https://ink-epistle.vercel.app/og-image.png" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;700&family=Ma+Shan+Zheng&family=Long+Cang&family=Zhi+Mang+Xing&family=ZCOOL+XiaoWei&family=Liu+Jian+Mao+Cao&display=swap" rel="stylesheet">
     <script>
@@ -64,23 +80,22 @@
         font-family: sans-serif;
       }
     </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
-    "vite": "https://aistudiocdn.com/vite@^7.2.4",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "@google/generative-ai": "https://aistudiocdn.com/@google/generative-ai@^0.24.1",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.0"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
@@ -100,5 +115,5 @@
     </svg>
     <!-- Vite Entry Point -->
     <script type="module" src="/src/index.tsx"></script>
-</body>
+  </body>
 </html>

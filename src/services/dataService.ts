@@ -104,8 +104,6 @@ class DataService {
 
   async resetPassword(email: string): Promise<void> {
       if (this.isCloudMode && supabase) {
-          // Explicitly use window.location.origin to ensure it redirects back to the current domain (e.g. Vercel)
-          // NOTE: This URL must be whitelisted in Supabase Dashboard -> Auth -> URL Configuration -> Redirect URLs
           const { error } = await supabase.auth.resetPasswordForEmail(email, {
               redirectTo: window.location.origin, 
           });
@@ -235,25 +233,44 @@ class DataService {
     return `INK-${userId.substring(0, 4).toUpperCase()}-2024`;
   }
 
+  // Changed to generic Redeem functionality for Mianbaoduo/License keys
+  async redeemLicenseKey(userId: string, key: string): Promise<{ success: boolean, message: string }> {
+    // 模拟验证逻辑：实际应调用后端验证面包多 API
+    // 假设卡密格式：M-XXXX (月), Q-XXXX (季), Y-XXXX (年)
+    const upperKey = key.trim().toUpperCase();
+    let duration = '';
+    
+    if (upperKey.startsWith('INK-M-')) duration = '月度';
+    else if (upperKey.startsWith('INK-Q-')) duration = '季度';
+    else if (upperKey.startsWith('INK-Y-')) duration = '年度';
+    else if (upperKey === 'INK-VIP-TEST') duration = '体验'; // Dev backdoor
+    else return { success: false, message: "无效的兑换码" };
+
+    await this.upgradeUser(userId);
+    return { success: true, message: `兑换成功！${duration}会员权益已激活。` };
+  }
+
+  // Deprecated but kept for compatibility
   async redeemReferral(_userId: string, _code: string): Promise<{ success: boolean, message: string }> {
     return { success: true, message: "兑换成功！会员权益已延长。" };
   }
 
   async checkDailyQuota(userId: string): Promise<boolean> {
     const user = JSON.parse(localStorage.getItem(KEYS.CURRENT_USER) || '{}');
-    if (user.isPro) return true;
+    // If Pro, check against 200 limit instead of skipping
+    const LIMIT = user.isPro ? 200 : 10;
 
     const todayStr = new Date().toISOString().split('T')[0];
     
     if (this.isCloudMode && supabase) {
         const { data } = await supabase.from('user_activity').select('ai_calls').eq('user_id', userId).eq('date', todayStr).single();
-        return (data?.ai_calls || 0) < 20;
+        return (data?.ai_calls || 0) < LIMIT;
     } else {
         const key = `${KEYS.ACTIVITY_PREFIX}${userId}_${todayStr}`;
         const stored = localStorage.getItem(key);
         if (!stored) return true;
         const activity = JSON.parse(stored);
-        return (activity.aiCalls || 0) < 20;
+        return (activity.aiCalls || 0) < LIMIT;
     }
   }
 

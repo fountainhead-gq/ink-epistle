@@ -169,9 +169,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <h1 className="text-4xl font-calligraphy text-stone-900 mb-2">文言尺牍</h1>
           <p className="text-stone-500 font-serif tracking-widest uppercase text-xs">Ink & Epistle</p>
           
-          <div className="mt-4 inline-flex items-center gap-1 px-3 py-1 bg-stone-100 rounded-full text-xs font-bold text-stone-500">
-             {dataService.isCloudMode ? <Cloud size={12} /> : <HardDrive size={12} />}
-             {dataService.isCloudMode ? '云端同步模式' : '本地单机模式'}
+          {/* Subtle Mode Indicator instead of Big Button */}
+          <div className="absolute top-4 right-4 text-[10px] text-stone-300 flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-help" title={dataService.isCloudMode ? '当前为云端同步模式' : '当前为本地单机模式'}>
+             {dataService.isCloudMode ? <Cloud size={10} /> : <HardDrive size={10} />}
+             {dataService.isCloudMode ? 'CLOUD' : 'LOCAL'}
           </div>
         </div>
 

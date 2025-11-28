@@ -1,14 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { Feather, Loader2, Cloud, HardDrive, AlertCircle, ArrowLeft, KeyRound, Mail } from 'lucide-react';
+import { Feather, Loader2, Cloud, HardDrive, AlertCircle, ArrowLeft, KeyRound, Mail, Lock } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface LoginProps {
   onLogin: (user: User) => void;
 }
 
-type AuthMode = 'login' | 'register' | 'forgot_password';
+type AuthMode = 'login' | 'register' | 'forgot_password' | 'update_password';
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login'); 
@@ -25,6 +25,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Listen for Password Recovery events (e.g. clicking link from email)
+  useEffect(() => {
+    const { data } = dataService.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+            setAuthMode('update_password');
+            setSuccessMsg("验证成功，请设置新密码");
+        }
+    });
+    return () => {
+        data.subscription.unsubscribe();
+    };
+  }, []);
+
   const handleAuth = async () => {
     setErrorMsg('');
     setSuccessMsg('');
@@ -40,7 +53,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           return;
       }
 
-      // 2. Login/Register Flow
+      // 2. Update Password Flow (After clicking email link)
+      if (authMode === 'update_password') {
+          if (!password || password.length < 6) throw new Error("新密码长度需至少 6 位");
+          await dataService.updateUserPassword(password);
+          setSuccessMsg("密码修改成功！请重新登录");
+          setTimeout(() => setAuthMode('login'), 2000);
+          setIsLoading(false);
+          return;
+      }
+
+      // 3. Login/Register Flow
       let user: User | null = null;
       let requireConfirmation = false;
 
@@ -79,12 +102,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       if (user && !requireConfirmation) {
-        // Init activity
         await dataService.updateActivity(user.id, { loginCount: 1 });
         onLogin(user);
       } else if (requireConfirmation) {
         setSuccessMsg("注册成功！请前往邮箱查收确认邮件以激活账号。");
-        setAuthMode('login'); // Switch back to login for when they return
+        setAuthMode('login'); 
       } else {
         throw new Error("认证失败，请检查凭证");
       }
@@ -142,7 +164,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div className="text-center mb-10">
           <div className="w-20 h-20 bg-stone-900 rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-lg">
-            {authMode === 'forgot_password' ? <KeyRound size={32} /> : <Feather size={32} />}
+            {authMode === 'forgot_password' || authMode === 'update_password' ? <KeyRound size={32} /> : <Feather size={32} />}
           </div>
           <h1 className="text-4xl font-calligraphy text-stone-900 mb-2">文言尺牍</h1>
           <p className="text-stone-500 font-serif tracking-widest uppercase text-xs">Ink & Epistle</p>
@@ -191,6 +213,32 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     className="w-full text-center text-stone-500 text-sm hover:text-stone-800 flex items-center justify-center gap-1"
                 >
                     <ArrowLeft size={14} /> 返回登录
+                </button>
+             </>
+          ) : authMode === 'update_password' ? (
+             <>
+                <div className="bg-amber-50 p-4 rounded text-sm text-amber-800 mb-4 font-serif">
+                    请设置您的新密码。
+                </div>
+                <div>
+                  <label className="block text-sm font-serif font-bold text-stone-700 mb-2">新密码</label>
+                  <div className="relative">
+                      <input 
+                        type="password" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full p-4 pl-10 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                        placeholder="••••••••"
+                      />
+                      <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  </div>
+                </div>
+                <button 
+                    onClick={handleAuth}
+                    disabled={isLoading}
+                    className="w-full py-4 bg-stone-900 text-stone-50 rounded-lg hover:bg-stone-800 transition-colors font-serif text-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    {isLoading ? <Loader2 className="animate-spin" /> : '更新密码'}
                 </button>
              </>
           ) : (

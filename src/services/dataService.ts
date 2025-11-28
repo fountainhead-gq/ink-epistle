@@ -57,7 +57,6 @@ class DataService {
             email, 
             password,
             options: {
-                // If you want to store metadata in auth.users too, or use it for triggers
                 data: {
                     display_name: extra.name,
                     avatar_color: extra.avatarColor
@@ -66,11 +65,9 @@ class DataService {
         });
         if (error) throw error;
         
-        // If data.user exists but data.session is null, email confirmation is required
         const requireConfirmation = !!(data.user && !data.session);
 
         if (data.user) {
-            // Create Profile
             const newProfile = {
                 id: data.user.id,
                 email: email,
@@ -80,13 +77,7 @@ class DataService {
                 is_pro: false
             };
             
-            // Note: If email confirmation is strictly enforced by RLS, this insert might fail 
-            // until the user confirms. However, usually 'authenticated' role or a trigger handles this.
-            // We attempt it here.
             const { error: profileError } = await supabase.from('profiles').insert(newProfile);
-            
-            // If insertion fails due to RLS (unconfirmed), we ignore it here, 
-            // as the user needs to confirm email first anyway.
             if (profileError && !requireConfirmation) throw profileError;
 
             const user = {
@@ -98,7 +89,6 @@ class DataService {
                 isPro: false
             };
             
-            // Only auto-login (store in LS) if no confirmation is required
             if (!requireConfirmation) {
                 localStorage.setItem(KEYS.CURRENT_USER, JSON.stringify(user));
             }
@@ -114,13 +104,29 @@ class DataService {
 
   async resetPassword(email: string): Promise<void> {
       if (this.isCloudMode && supabase) {
+          // Explicitly use window.location.origin to ensure it redirects back to the current domain (e.g. Vercel)
+          // NOTE: This URL must be whitelisted in Supabase Dashboard -> Auth -> URL Configuration -> Redirect URLs
           const { error } = await supabase.auth.resetPasswordForEmail(email, {
-              redirectTo: window.location.origin, // Redirect back to app to set new password
+              redirectTo: window.location.origin, 
           });
           if (error) throw error;
       } else {
           throw new Error("本地模式不支持重置密码");
       }
+  }
+
+  async updateUserPassword(password: string): Promise<void> {
+      if (this.isCloudMode && supabase) {
+          const { error } = await supabase.auth.updateUser({ password });
+          if (error) throw error;
+      }
+  }
+
+  onAuthStateChange(callback: (event: string, session: any) => void) {
+      if (this.isCloudMode && supabase) {
+          return supabase.auth.onAuthStateChange(callback);
+      }
+      return { data: { subscription: { unsubscribe: () => {} } } };
   }
 
   async logout(): Promise<void> {
@@ -153,7 +159,6 @@ class DataService {
     const result: UserActivity[] = [];
 
     if (this.isCloudMode && supabase) {
-        // In Cloud mode, we query DB range
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
         const { data } = await supabase.from('user_activity')
@@ -162,14 +167,12 @@ class DataService {
             .gte('date', startDate.toISOString().split('T')[0])
             .order('date', { ascending: false });
         
-        // Map DB to type
         const dbMap = new Map();
         data?.forEach(d => dbMap.set(d.date, {
             date: d.date, minutes: d.minutes, wordsWritten: d.words_written, 
             lettersSent: d.letters_sent, loginCount: d.login_count, aiCalls: d.ai_calls
         }));
 
-        // Fill gaps
         for (let i = 0; i < days; i++) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
@@ -177,7 +180,6 @@ class DataService {
             if (dbMap.has(dateStr)) {
                 result.push(dbMap.get(dateStr));
             } else if (i === 0) {
-                // Ensure today exists
                 result.push({ date: dateStr, minutes: 0, wordsWritten: 0, lettersSent: 0, loginCount: 1, aiCalls: 0 });
             }
         }
@@ -203,7 +205,6 @@ class DataService {
     const todayStr = new Date().toISOString().split('T')[0];
     
     if (this.isCloudMode && supabase) {
-        // Fetch today first
         const { data } = await supabase.from('user_activity').select('*').eq('user_id', userId).eq('date', todayStr).single();
         const current = data || { minutes: 0, words_written: 0, letters_sent: 0, login_count: 0, ai_calls: 0 };
         
@@ -257,7 +258,6 @@ class DataService {
   }
 
   async incrementAiUsage(userId: string): Promise<void> {
-     // Reuse updateActivity logic
      const todayStr = new Date().toISOString().split('T')[0];
      if (this.isCloudMode && supabase) {
          const { data } = await supabase.from('user_activity').select('ai_calls').eq('user_id', userId).eq('date', todayStr).single();
@@ -457,7 +457,6 @@ class DataService {
 
   async toggleLike(userId: string, postId: string): Promise<void> {
       if (this.isCloudMode && supabase) {
-          // Fetch current to calc new (simple approach, ideally RPC)
           const { data } = await supabase.from('community_posts').select('likes, liked_by').eq('id', postId).single();
           if (data) {
               const hasLiked = data.liked_by?.includes(userId);
@@ -568,7 +567,6 @@ class DataService {
   
   async saveFavorites(userId: string, favs: number[]): Promise<void> {
       if (this.isCloudMode && supabase) {
-          // Full replace logic: Delete all, Insert new (simple but effective for small lists)
           await supabase.from('user_favorites').delete().eq('user_id', userId);
           if (favs.length > 0) {
               await supabase.from('user_favorites').insert(favs.map(fid => ({ user_id: userId, phrase_id: fid })));
@@ -602,7 +600,6 @@ class DataService {
 
   // --- Export/Import ---
   async exportUserData(userId: string): Promise<string> {
-    // Only Local Export supported for now (Cloud export would be heavy)
     const data: any = {};
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -610,7 +607,6 @@ class DataService {
             data[key] = localStorage.getItem(key);
         }
     }
-    // Also include user profile
     data['user_profile'] = localStorage.getItem(KEYS.CURRENT_USER);
     return JSON.stringify(data);
   }
@@ -621,10 +617,8 @@ class DataService {
         Object.keys(data).forEach(key => {
             const value = data[key];
             if (key === 'user_profile') {
-                // Only restore if local mode or user explicit action
                 if (value && !this.isCloudMode) localStorage.setItem(KEYS.CURRENT_USER, value);
             } else {
-                // Handle potential double-encoding fix from previous step
                 const valToStore = typeof value === 'string' ? value : JSON.stringify(value);
                 localStorage.setItem(key, valToStore);
             }

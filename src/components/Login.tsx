@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { Feather, Loader2, Cloud, HardDrive, AlertCircle, ArrowLeft, KeyRound, Mail, Eye, EyeOff, Smartphone, Timer, CheckCircle } from 'lucide-react';
+import { Feather, Loader2, Cloud, HardDrive, AlertCircle, ArrowLeft, KeyRound, Mail, Eye, EyeOff, Smartphone,  CheckCircle } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface LoginProps {

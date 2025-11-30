@@ -30,7 +30,7 @@ const SpectrumChart: React.FC<SpectrumChartProps> = ({ data }) => {
   };
 
   const handleShare = () => {
-    const summary = `【文言尺牍光谱分析】
+    const summary = `【墨客文心光谱分析】
 气象：${getLabel('temperature', data.temperature)} (${data.temperature})
 风格：${getLabel('style', data.style)} (${data.style})
 情绪：${getLabel('emotion', data.emotion)} (${data.emotion})

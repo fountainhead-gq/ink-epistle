@@ -25,7 +25,7 @@ const Nav: React.FC<NavProps> = ({ currentView, setView, user, onLogout, todayMi
   const { triggerUpgrade } = useUpgradeModal();
 
   const navItems: NavItem[] = [
-    { id: ViewState.DASHBOARD, label: '书斋概览', icon: Activity },
+    { id: ViewState.DASHBOARD, label: '墨客文心', icon: Activity },
     { id: ViewState.AI_TUTOR, label: '文言导师', icon: GraduationCap },
     { id: ViewState.TEMPLATES, label: '尺牍模版', icon: Layout },
     { id: ViewState.PHRASE_ATLAS, label: '辞藻典库', icon: BookOpen },
@@ -64,8 +64,8 @@ const Nav: React.FC<NavProps> = ({ currentView, setView, user, onLogout, todayMi
         {/* Brand */}
         <div className="p-8 border-b border-stone-800 flex justify-between items-center">
           <div>
-            <h1 className="font-calligraphy text-3xl text-stone-50 tracking-widest">文言尺牍</h1>
-            <p className="text-xs text-stone-500 mt-2 tracking-widest uppercase">Ink & Epistle</p>
+            <h1 className="font-calligraphy text-3xl text-stone-50 tracking-widest">墨客文心</h1>
+            <p className="text-xs text-stone-500 mt-2 tracking-widest uppercase">Ink & Mind</p>
           </div>
           <button onClick={onClose} className="lg:hidden text-stone-400 hover:text-white">
             <X size={24} />

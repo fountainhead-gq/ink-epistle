@@ -134,7 +134,7 @@ const PhraseAtlas: React.FC<PhraseAtlasProps> = ({ user }) => {
 
       <header className="mb-6 lg:mb-8">
         <h2 className="text-2xl lg:text-3xl font-serif font-bold text-stone-800 mb-2">辞藻典库</h2>
-        <p className="text-stone-500">文言尺牍的“弹药库”，随查随用。</p>
+        <p className="text-stone-500">墨客文心的“弹药库”，随查随用。</p>
       </header>
 
       {/* Tabs - Scrollable on mobile */}

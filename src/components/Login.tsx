@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { Feather, Loader2, Cloud, HardDrive, AlertCircle, ArrowLeft, KeyRound, Mail, Lock } from 'lucide-react';
+import { Feather, Loader2, Cloud, HardDrive, AlertCircle, ArrowLeft, KeyRound, Mail, Eye, EyeOff, Smartphone, Timer, CheckCircle } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface LoginProps {
@@ -9,9 +9,12 @@ interface LoginProps {
 }
 
 type AuthMode = 'login' | 'register' | 'forgot_password' | 'update_password';
+type LoginMethod = 'email' | 'phone';
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login'); 
+  const [method, setMethod] = useState<LoginMethod>('email');
+  const [showPassword, setShowPassword] = useState(false);
   
   // Local Fields
   const [name, setName] = useState('');
@@ -19,13 +22,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   
   // Cloud Fields
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  
+  // OTP Hint State (Inline)
+  const [otpHint, setOtpHint] = useState('');
+  
+  // OTP Timer
+  const [countdown, setCountdown] = useState(0);
 
-  // Listen for Password Recovery events (e.g. clicking link from email)
+  // Listen for Password Recovery events
   useEffect(() => {
     const { data } = dataService.onAuthStateChange((event) => {
         if (event === 'PASSWORD_RECOVERY') {
@@ -37,6 +48,40 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         data.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+      let interval: any;
+      if (countdown > 0) {
+          interval = setInterval(() => setCountdown(c => c - 1), 1000);
+      }
+      return () => clearInterval(interval);
+  }, [countdown]);
+
+  const isValidPhone = (p: string) => /^1[3-9]\d{9}$/.test(p);
+
+  const handleSendCode = async () => {
+      if (!phone) {
+          setErrorMsg("请输入手机号码");
+          return;
+      }
+      if (!isValidPhone(phone)) {
+          setErrorMsg("请输入有效的11位手机号码");
+          return;
+      }
+
+      setErrorMsg('');
+      setSuccessMsg('');
+      setOtpHint('');
+      
+      try {
+          const msg = await dataService.sendPhoneOtp(phone);
+          setOtpHint(msg);
+          setCountdown(60);
+      } catch (e: any) {
+          console.error("Send OTP failed", e);
+          setErrorMsg(e.message || "验证码发送失败");
+      }
+  };
 
   const handleAuth = async () => {
     setErrorMsg('');
@@ -53,7 +98,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           return;
       }
 
-      // 2. Update Password Flow (After clicking email link)
+      // 2. Update Password Flow
       if (authMode === 'update_password') {
           if (!password || password.length < 6) throw new Error("新密码长度需至少 6 位");
           await dataService.updateUserPassword(password);
@@ -68,22 +113,41 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       let requireConfirmation = false;
 
       if (dataService.isCloudMode) {
-        if (!email || !password) {
-          throw new Error("请输入邮箱和密码");
-        }
-        
-        if (authMode === 'login') {
-           user = await dataService.login(email, password);
+        if (method === 'phone') {
+            if (!phone) throw new Error("请输入手机号");
+            if (!isValidPhone(phone)) throw new Error("请输入有效的11位手机号码");
+            if (!otp) throw new Error("请输入验证码");
+            
+            let extra = undefined;
+            if (authMode === 'register') {
+                if (!name) throw new Error("注册需填写昵称");
+                extra = {
+                    name: name,
+                    styleName: styleName || '新晋学士',
+                    avatarColor: ['bg-amber-700', 'bg-rose-700', 'bg-emerald-700', 'bg-indigo-700', 'bg-stone-700'][Math.floor(Math.random() * 5)]
+                };
+            }
+            
+            user = await dataService.verifyPhoneOtp(phone, otp, extra);
         } else {
-           if (!name) throw new Error("注册需填写昵称");
-           const extra = {
-             name: name,
-             styleName: styleName || '新晋学士',
-             avatarColor: ['bg-amber-700', 'bg-rose-700', 'bg-emerald-700', 'bg-indigo-700', 'bg-stone-700'][Math.floor(Math.random() * 5)]
-           };
-           const res = await dataService.register(email, password, extra);
-           user = res.user;
-           requireConfirmation = res.requireConfirmation;
+            // Email Flow
+            if (!email) throw new Error("请输入邮箱");
+            if (!password) throw new Error("请输入密码");
+
+            if (authMode === 'login') {
+               user = await dataService.login(email, password);
+            } else {
+               if (!name) throw new Error("注册需填写昵称");
+               const extra = {
+                 name: name,
+                 styleName: styleName || '新晋学士',
+                 avatarColor: ['bg-amber-700', 'bg-rose-700', 'bg-emerald-700', 'bg-indigo-700', 'bg-stone-700'][Math.floor(Math.random() * 5)]
+               };
+               
+               const res = await dataService.register(email, password, extra);
+               user = res.user;
+               requireConfirmation = res.requireConfirmation;
+            }
         }
       } else {
         // Local Mode
@@ -105,21 +169,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         await dataService.updateActivity(user.id, { loginCount: 1 });
         onLogin(user);
       } else if (requireConfirmation) {
-        setSuccessMsg("注册成功！请前往邮箱查收确认邮件以激活账号。");
+        setSuccessMsg("注册成功！请前往邮箱/手机查收确认信息以激活账号。");
         setAuthMode('login'); 
       } else {
-        throw new Error("认证失败，请检查凭证");
+        if (!user && method === 'phone' && authMode === 'login') {
+             throw new Error("认证失败，请检查验证码是否过期");
+        }
+        if (!user) throw new Error("认证失败，请检查凭证");
       }
 
     } catch (e: any) {
       console.error("Auth failed", e);
       let message = e.message || "登录失败";
       
-      // Supabase Error Translation
       if (message.includes("User already registered") || message.includes("user_already_exists")) {
-        message = "该邮箱已注册，请直接登录";
-      } else if (message.includes("Invalid login credentials") || message.includes("invalid_grant")) {
-        message = "账号或密码错误";
+        message = "该账号已注册，请直接登录";
+      } else if (message.includes("Invalid login credentials") || message.includes("invalid_grant") || message.includes("Token has expired")) {
+        message = method === 'phone' ? "验证码错误或已过期" : "账号或密码错误";
       } else if (message.includes("Password should be at least")) {
         message = "密码长度需至少 6 位";
       } else if (message.includes("Database error")) {
@@ -127,7 +193,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       } else if (message.includes("Rate limit exceeded")) {
         message = "请求过于频繁，请稍后再试";
       } else if (message.includes("Email not found")) {
-        message = "该邮箱未注册";
+        message = "该账号未注册";
+      } else if (message.includes("Signups not allowed for this")) {
+         message = "该方式注册暂未开放";
       }
 
       setErrorMsg(message);
@@ -139,6 +207,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const toggleMode = () => {
       setErrorMsg('');
       setSuccessMsg('');
+      setOtpHint('');
       if (authMode === 'login') setAuthMode('register');
       else setAuthMode('login');
   };
@@ -166,10 +235,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="w-20 h-20 bg-stone-900 rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-lg">
             {authMode === 'forgot_password' || authMode === 'update_password' ? <KeyRound size={32} /> : <Feather size={32} />}
           </div>
-          <h1 className="text-4xl font-calligraphy text-stone-900 mb-2">文言尺牍</h1>
-          <p className="text-stone-500 font-serif tracking-widest uppercase text-xs">Ink & Epistle</p>
+          <h1 className="text-4xl font-calligraphy text-stone-900 mb-2">墨客文心</h1>
+          <p className="text-stone-500 font-serif tracking-widest uppercase text-xs">Ink & Mind</p>
           
-          {/* Subtle Mode Indicator instead of Big Button */}
           <div className="absolute top-4 right-4 text-[10px] text-stone-300 flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity cursor-help" title={dataService.isCloudMode ? '当前为云端同步模式' : '当前为本地单机模式'}>
              {dataService.isCloudMode ? <Cloud size={10} /> : <HardDrive size={10} />}
              {dataService.isCloudMode ? 'CLOUD' : 'LOCAL'}
@@ -200,7 +268,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
                     placeholder="name@example.com"
                   />
-                  <p className="text-xs text-stone-400 mt-2">我们将发送重置链接到您的邮箱。</p>
+                  <p className="text-xs text-stone-400 mt-2">目前仅支持通过邮箱找回密码。</p>
                 </div>
                 <button 
                     onClick={handleAuth}
@@ -225,13 +293,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <label className="block text-sm font-serif font-bold text-stone-700 mb-2">新密码</label>
                   <div className="relative">
                       <input 
-                        type="password" 
+                        type={showPassword ? "text" : "password"} 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-4 pl-10 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                        className="w-full p-4 pr-12 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
                         placeholder="••••••••"
                       />
-                      <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
                   </div>
                 </div>
                 <button 
@@ -246,6 +320,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <>
               {dataService.isCloudMode ? (
                 <>
+                   {/* Method Toggle */}
+                   <div className="flex bg-stone-100 p-1 rounded-lg mb-2">
+                      <button
+                        className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${method === 'email' ? 'bg-white shadow text-stone-800' : 'text-stone-500'}`}
+                        onClick={() => { setMethod('email'); setOtpHint(''); }}
+                      >
+                        <Mail size={16} /> 邮箱
+                      </button>
+                      <button
+                        className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${method === 'phone' ? 'bg-white shadow text-stone-800' : 'text-stone-500'}`}
+                        onClick={() => setMethod('phone')}
+                      >
+                        <Smartphone size={16} /> 手机号
+                      </button>
+                   </div>
+
                    {authMode === 'register' && (
                      <div>
                        <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>
@@ -258,36 +348,103 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                        />
                      </div>
                    )}
-                   <div>
-                      <label className="block text-sm font-serif font-bold text-stone-700 mb-2">电子邮箱</label>
-                      <input 
-                        type="email" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
-                        placeholder="name@example.com"
-                      />
-                   </div>
-                   <div>
-                      <div className="flex justify-between items-center mb-2">
-                          <label className="block text-sm font-serif font-bold text-stone-700">密码</label>
-                          {authMode === 'login' && (
-                              <button onClick={goToForgot} className="text-xs text-stone-400 hover:text-stone-600 hover:underline">
-                                  忘记密码？
-                              </button>
-                          )}
-                      </div>
-                      <input 
-                        type="password" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
-                        placeholder="••••••••"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                      />
-                   </div>
+                   
+                   {method === 'email' ? (
+                       // Email Inputs
+                       <>
+                           <div>
+                              <label className="block text-sm font-serif font-bold text-stone-700 mb-2">电子邮箱</label>
+                              <input 
+                                type="email" 
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                                placeholder="name@example.com"
+                              />
+                           </div>
+                           <div>
+                              <div className="flex justify-between items-center mb-2">
+                                  <label className="block text-sm font-serif font-bold text-stone-700">密码</label>
+                                  {authMode === 'login' && (
+                                      <button onClick={goToForgot} className="text-xs text-stone-400 hover:text-stone-600 hover:underline">
+                                          忘记密码？
+                                      </button>
+                                  )}
+                              </div>
+                              <div className="relative">
+                                  <input 
+                                    type={showPassword ? "text" : "password"} 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full p-4 pr-12 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                                    placeholder="••••••••"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                                  >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                  </button>
+                              </div>
+                           </div>
+                       </>
+                   ) : (
+                       // Phone Inputs
+                       <>
+                           <div>
+                              <label className="block text-sm font-serif font-bold text-stone-700 mb-2">手机号码</label>
+                              <input 
+                                type="tel" 
+                                value={phone}
+                                onChange={(e) => {
+                                    // Restrict input to digits and max 11 chars
+                                    const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                    setPhone(val);
+                                }}
+                                className="w-full p-4 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                                placeholder="13800000000"
+                              />
+                           </div>
+                           <div>
+                              <label className="block text-sm font-serif font-bold text-stone-700 mb-2">验证码</label>
+                              <div className="relative">
+                                  <input 
+                                    type="text" 
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    className="w-full p-4 pr-32 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-900 focus:outline-none font-serif"
+                                    placeholder="6位数字"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={handleSendCode}
+                                    disabled={countdown > 0 || !phone}
+                                    className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 text-xs font-bold rounded transition-colors
+                                        ${countdown > 0 || !phone ? 'text-stone-400 bg-stone-100 cursor-not-allowed' : 'text-white bg-stone-800 hover:bg-stone-700'}
+                                    `}
+                                  >
+                                    {countdown > 0 ? `${countdown}秒后重发` : '获取验证码'}
+                                  </button>
+                              </div>
+                              
+                              {/* Inline OTP Hint */}
+                              {otpHint && (
+                                <div className="mt-3 p-3 bg-[#fffdf5] border border-stone-200 rounded-lg text-xs text-stone-600 font-serif leading-relaxed flex items-start gap-2 animate-fade-in">
+                                    <div className="shrink-0 mt-0.5 text-stone-400">
+                                        <CheckCircle size={14} />
+                                    </div>
+                                    <span className="whitespace-pre-wrap">{otpHint}</span>
+                                </div>
+                              )}
+                           </div>
+                       </>
+                   )}
                 </>
               ) : (
+                // Local Mode Inputs
                 <>
                   <div>
                     <label className="block text-sm font-serif font-bold text-stone-700 mb-2">尊姓大名</label>

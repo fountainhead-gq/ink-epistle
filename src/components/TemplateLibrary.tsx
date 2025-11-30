@@ -197,7 +197,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onUseTemplate }) => {
   return (
     <div className="p-10 max-w-7xl mx-auto animate-fade-in">
       <header className="mb-10">
-        <h2 className="text-3xl font-serif font-bold text-stone-800 mb-2">文言尺牍·模版库</h2>
+        <h2 className="text-3xl font-serif font-bold text-stone-800 mb-2">墨客文心·模版库</h2>
         <p className="text-stone-500">一眼即用，如武林秘籍之招式谱。</p>
       </header>
 

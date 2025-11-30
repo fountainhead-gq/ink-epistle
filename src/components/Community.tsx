@@ -119,13 +119,13 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                       className={`flex items-center gap-2 text-sm font-bold transition-colors ${isLiked ? 'text-red-600' : 'text-stone-400 hover:text-stone-600'}`}
                     >
                       <Heart size={18} className={isLiked ? 'fill-current' : ''} /> 
-                      {post.likes} 加印
+                      {post.likes} 点赞
                     </button>
                     <button 
                       onClick={() => toggleComments(post.id)}
                       className={`flex items-center gap-2 text-sm font-bold transition-colors ${isCommentsExpanded ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}`}
                     >
-                      <MessageSquare size={18} /> {post.comments?.length || 0} 批注
+                      <MessageSquare size={18} /> {post.comments?.length || 0} 评论
                     </button>
                     <button className="flex items-center gap-2 text-sm font-bold text-stone-400 hover:text-stone-600 transition-colors ml-auto">
                       <Share2 size={18} /> 
@@ -155,7 +155,7 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                                   type="text" 
                                   value={commentInput}
                                   onChange={(e) => setCommentInput(e.target.value)}
-                                  placeholder="添加你的批注..."
+                                  placeholder="添加你的评论..."
                                   className="flex-1 px-3 py-2 border border-stone-200 rounded text-sm focus:outline-none focus:border-stone-400 font-serif"
                                   onKeyDown={(e) => e.key === 'Enter' && handleSendComment(post.id)}
                                 />

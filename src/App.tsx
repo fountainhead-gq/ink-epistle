@@ -40,7 +40,7 @@ const App: React.FC = () => {
   // P3: Dynamic Document Title
   useEffect(() => {
     const titleMap: Record<ViewState, string> = {
-      [ViewState.DASHBOARD]: '书斋概览',
+      [ViewState.DASHBOARD]: '墨客文心',
       [ViewState.TEMPLATES]: '尺牍模版',
       [ViewState.PHRASE_ATLAS]: '辞藻典库',
       [ViewState.PRACTICE]: '习练工坊',
@@ -54,7 +54,7 @@ const App: React.FC = () => {
       [ViewState.SEAL_STUDIO]: '印章工坊',
       [ViewState.FLYING_FLOWER]: '飞花令',
     };
-    document.title = `${titleMap[currentView] || '文言尺牍'} | Ink & Epistle`;
+    document.title = `${titleMap[currentView] || '墨客文心'} | Ink & Mind`;
   }, [currentView]);
 
   // Timer Logic: Track study time
@@ -161,7 +161,7 @@ const App: React.FC = () => {
                </button>
                <div className="flex items-center gap-2">
                  <Feather size={18} className="text-stone-400"/>
-                 <span className="font-calligraphy text-xl tracking-widest">文言尺牍</span>
+                 <span className="font-calligraphy text-xl tracking-widest">墨客文心</span>
                </div>
              </div>
              <div className={`w-8 h-8 rounded-full ${user.avatarColor} flex items-center justify-center text-xs font-bold border border-stone-600`}>

@@ -51,7 +51,7 @@ const ShareCard: React.FC<ShareCardProps> = ({ content, user, onClose, fontFamil
       });
       
       const link = document.createElement('a');
-      link.download = `文言尺牍_${Date.now()}.png`;
+      link.download = `墨客文心_${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (e) {
@@ -187,8 +187,8 @@ const ShareCard: React.FC<ShareCardProps> = ({ content, user, onClose, fontFamil
 
                   <div className={`flex justify-between items-start mb-8 border-b ${theme === 'royal' ? 'border-amber-200' : 'border-stone-300'} pb-4 shrink-0`}>
                     <div>
-                       <div className={`${styles.accent} text-xs tracking-[0.2em] uppercase mb-1`}>Ink & Epistle</div>
-                       <div className={`font-calligraphy text-2xl ${styles.text}`}>文言尺牍</div>
+                       <div className={`${styles.accent} text-xs tracking-[0.2em] uppercase mb-1`}>Ink & Mind</div>
+                       <div className={`font-calligraphy text-2xl ${styles.text}`}>墨客文心</div>
                     </div>
                     <div className="flex flex-col items-end">
                        {selectedSeal ? renderSealOnCard(selectedSeal) : (

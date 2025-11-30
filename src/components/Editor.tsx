@@ -192,7 +192,7 @@ const Editor: React.FC<EditorProps> = ({ initialContent, user, onNavigate }) => 
     const element = document.createElement("a");
     const file = new Blob([content], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
-    element.download = "文言尺牍.txt";
+    element.download = "墨客文心.txt";
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);

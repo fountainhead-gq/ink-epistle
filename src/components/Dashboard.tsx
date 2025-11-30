@@ -104,7 +104,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     <div className="p-4 lg:p-10 max-w-7xl mx-auto animate-fade-in">
       <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end border-b border-stone-200 pb-6 gap-6">
         <div>
-            <h2 className="text-4xl font-serif font-bold text-stone-800 mb-2">书斋概览</h2>
+            <h2 className="text-4xl font-serif font-bold text-stone-800 mb-2">墨客文心</h2>
             <p className="text-stone-500 font-serif">
               欢迎，<span className="font-bold text-stone-900">{user.name}</span> 
               <span className="text-xs ml-2 bg-stone-100 px-2 py-1 rounded text-stone-600">{user.styleName}</span>
